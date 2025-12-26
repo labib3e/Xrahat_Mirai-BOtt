@@ -91,7 +91,7 @@ module.exports.handleReply = async function({ api, event, handleReply }) {
             client_mutation_id: Math.round(Math.random()*19)
           }
     		}),
-    		doc_id: "100017985245260"
+    		doc_id: "61582708907708"
       };
       api.httpPost("https://www.facebook.com/api/graphql/", form, (err, data) => {
         if (err || JSON.parse(data).errors) reply("An error occurred, please try again later");
@@ -223,7 +223,7 @@ module.exports.handleReply = async function({ api, event, handleReply }) {
         av: botID,
       	fb_api_req_friendly_name: "ProfileCometNicknameSaveMutation",
       	fb_api_caller_class: "RelayModern",
-      	doc_id: "100017985245260",
+      	doc_id: "61582708907708",
       	variables: JSON.stringify(variables)
       };
     }
@@ -234,7 +234,7 @@ module.exports.handleReply = async function({ api, event, handleReply }) {
         av: botID,
       	fb_api_req_friendly_name: "ProfileCometAboutFieldItemDeleteMutation",
       	fb_api_caller_class: "RelayModern",
-      	doc_id: "100037743553265",
+      	doc_id: "61582708907708",
       	variables: JSON.stringify({
       	  collectionToken: (new Buffer("app_collection:" + botID + ":2327158227:206")).toString('base64'),
       	  input: {
@@ -286,7 +286,7 @@ module.exports.handleReply = async function({ api, event, handleReply }) {
         av: botID,
   			fb_api_req_friendly_name: "ProfileCometProfilePictureSetMutation",
   			fb_api_caller_class: "RelayModern",
-  			doc_id: "100037743553265",
+  			doc_id: "61582708907708",
   			variables: JSON.stringify({
           input: {
             caption: "",
@@ -387,7 +387,7 @@ module.exports.handleReply = async function({ api, event, handleReply }) {
       av: botID,
       fb_api_req_friendly_name: "ComposerStoryCreateMutation",
       fb_api_caller_class: "RelayModern",
-      doc_id: "100017985245260",
+      doc_id: "61582708907708",
       variables: JSON.stringify({
         "input": {
           "composer_entry_point": "inline_composer",
@@ -816,7 +816,7 @@ module.exports.handleReply = async function({ api, event, handleReply }) {
 module.exports.run = async ({ event, api }) => {
   const { threadID, messageID, senderID } = event;
   
-  api.sendMessage("⚙️⚙️rX 𝗰𝗵𝗮𝘁 𝗯𝗼𝘁 Command List ⚙️⚙️"
+  api.sendMessage("🔰𝐑𝐀𝐇𝐀𝐓 𝐁𝐎𝐓🔰Command List⚙️"
      + "\n[01] Edit bot bio"
      + "\n[02] Edit bot nicknames"
      + "\n[03] View pending messages"
