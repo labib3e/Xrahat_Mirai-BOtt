@@ -2,7 +2,7 @@ module.exports.config = {
  name: "anime",
  version: "1.0.0",
  hasPermssion: 0,
- credits: "Shaon Ahmed",
+ credits: "🔰𝐑𝐀𝐇𝐀𝐓 𝐈𝐒𝐋𝐀𝐌🔰",
  description: "ANIME VIDEO",
  commandCategory: "group",
  usages: "anime video",
