@@ -5,9 +5,59 @@ module.exports.config = {
     credits: "🔰𝐑𝐀𝐇𝐀𝐓 𝐈𝐒𝐋𝐀𝐌🔰",
     description: "Global + Manual Ban System",
     commandCategory: "system",
-    usages: "-ban on/off | -ban uid | -ban list",
+    usages: "-ban on/off | -ban [@mention/reply/UID/link/name] | -ban list",
     cooldowns: 0
 };
+
+// ===== Helper: Full Name Mention Detection =====
+async function getUIDByFullName(api, threadID, body) {
+    if (!body.includes("@")) return null;
+    const match = body.match(/@(.+)/);
+    if (!match) return null;
+    const targetName = match[1].trim().toLowerCase().replace(/\s+/g, " ");
+    const threadInfo = await api.getThreadInfo(threadID);
+    const users = threadInfo.userInfo || [];
+    const user = users.find(u => {
+        if (!u.name) return false;
+        const fullName = u.name.trim().toLowerCase().replace(/\s+/g, " ");
+        return fullName === targetName;
+    });
+    return user ? user.id : null;
+}
+
+// ===== Helper: Get Target User =====
+async function getTargetUser(api, event, args, Users) {
+    let targetID;
+    let targetName;
+
+    // ===== Determine targetID in three ways =====
+    if (event.type === "message_reply") {
+        // Way 1: Reply to a message
+        targetID = event.messageReply.senderID;
+    } else if (args[0]) {
+        if (args[0].indexOf(".com/") !== -1) {
+            // Way 2: Facebook profile link
+            targetID = await api.getUID(args[0]);
+        } else if (args.join().includes("@")) {
+            // Way 3: Mention or full name
+            // 3a: Direct Facebook mention
+            targetID = Object.keys(event.mentions || {})[0];
+            if (!targetID) {
+                // 3b: Full name detection
+                targetID = await getUIDByFullName(api, event.threadID, args.join(" "));
+            }
+        } else {
+            // Direct UID
+            targetID = args[0];
+        }
+    }
+
+    if (targetID) {
+        targetName = await Users.getNameUser(targetID);
+    }
+
+    return { targetID, targetName };
+}
 
 module.exports.run = async ({ event, api, Users, args }) => {
     const { threadID, messageID } = event;
@@ -34,18 +84,23 @@ module.exports.run = async ({ event, api, Users, args }) => {
 
     // ================= UNBAN SPECIFIC UID =================
     if (args[0] === "off" && args[1]) {
-        const uid = args[1];
+        // Use the three-way mention detection system for unban
+        const { targetID, targetName } = await getTargetUser(api, event, [args[1]], Users);
+        
+        if (!targetID) {
+            return api.sendMessage("❌রাহাদ বসকে ডাক দে🫩\nকীভাবে কমান্ড ব্যবহার করতে হয় শিখায় দিবো🥴", threadID, messageID);
+        }
 
-        let data = (await Users.getData(uid)).data || {};
+        let data = (await Users.getData(targetID)).data || {};
         data.banned = 0;
 
-        await Users.setData(uid, { data });
-        global.data.userBanned.delete(uid);
+        await Users.setData(targetID, { data });
+        global.data.userBanned.delete(targetID);
 
-        const name = await Users.getNameUser(uid);
+        const name = targetName || await Users.getNameUser(targetID);
 
         return api.sendMessage(
-            `🔓 USER UNBANNED\n👤 ${name}\n🆔 ${uid}`,
+            `🔓𝗨𝗦𝗘𝗥 𝗨𝗡𝗕𝗔𝗡𝗡𝗘𝗗\n👤 ${name}\n🆔 ${targetID}`,
             threadID,
             messageID
         );
@@ -56,9 +111,9 @@ module.exports.run = async ({ event, api, Users, args }) => {
         const banned = Array.from(global.data.userBanned.entries());
 
         if (banned.length === 0)
-            return api.sendMessage("❎ কোনো manual ban নাই!", threadID, messageID);
+            return api.sendMessage("❎ কোনো ban নাই!", threadID, messageID);
 
-        let msg = "📌 MANUAL BANNED USERS\n\n";
+        let msg = "📌𝑴𝑨𝑵𝑼𝑨𝑳 𝑩𝑨𝑵𝑵𝑬𝑫 𝑼𝑺𝑬𝑹𝑺\n\n";
         let i = 1;
 
         for (const [uid] of banned) {
@@ -80,20 +135,21 @@ module.exports.run = async ({ event, api, Users, args }) => {
     }
 
     // ================= MANUAL BAN =================
-    let targetID;
+    // Use the three-way mention detection system
+    const { targetID, targetName } = await getTargetUser(api, event, args, Users);
 
-    if (Object.keys(event.mentions).length > 0)
-        targetID = Object.keys(event.mentions)[0];
-    else if (event.type === "message_reply")
-        targetID = event.messageReply.senderID;
-    else if (args[0])
-        targetID = args[0];
-    else
+    if (!targetID) {
         return api.sendMessage(
-            "❌ UID / mention / reply দাও!",
+            "❌রাহাদ বসকে ডাক দে🫩\nকীভাবে কমান্ড ব্যবহার করতে হয় শিখায় দিবো🥴",
             threadID,
             messageID
         );
+    }
+
+    // Check if already banned
+    if (global.data.userBanned.has(targetID)) {
+        return api.sendMessage(`❌ ${targetName || targetID} is already banned!`, threadID, messageID);
+    }
 
     let data = (await Users.getData(targetID)).data || {};
 
@@ -110,10 +166,10 @@ module.exports.run = async ({ event, api, Users, args }) => {
         dateAdded: data.dateAdded
     });
 
-    const name = await Users.getNameUser(targetID);
+    const name = targetName || await Users.getNameUser(targetID);
 
     return api.sendMessage(
-        `🚫 USER BANNED\n👤 ${name}\n🆔 ${targetID}`,
+        `🚫𝑼𝑺𝑬𝑹 𝑩𝑨𝑵𝑵𝑬𝑫\n👤 ${name}\n🆔 ${targetID}`,
         threadID,
         messageID
     );
@@ -141,7 +197,7 @@ module.exports.handleReply = async ({ event, api, Users, handleReply }) => {
     const name = await Users.getNameUser(uid);
 
     return api.sendMessage(
-        `🔓 USER UNBANNED\n👤 ${name}\n🆔 ${uid}`,
+        `🔓𝗨𝗦𝗘𝗥 𝗨𝗡𝗕𝗔𝗡𝗡𝗘𝗗\n👤 ${name}\n🆔 ${uid}`,
         event.threadID
     );
 };
