@@ -2,10 +2,10 @@ const fs = require("fs-extra");
 const request = require("request");
 
 module.exports.config = {
- name: "boy pp",
+ name: "boypp",
  version: "1.0.1",
  hasPermssion: 0,
- credits: "𝐒𝐡𝐚𝐡𝐚𝐝𝐚𝐭 𝐒𝐀𝐇𝐔",
+ credits: "🔰𝐑𝐀𝐇𝐀𝐓 𝐈𝐒𝐋𝐀𝐌🔰",
  description: "Send a random Facebook boy profile picture",
  commandCategory: "Random-IMG",
  usages: "boy pp",
