@@ -2,7 +2,7 @@ module.exports.config = {
   name: "বিদেশি_গরু",
   version: "1.0.0",
   hasPermssion: 2,
-  credits: "Raiden Ei (Modified by Rahat)",
+  credits: "🔰𝐑𝐀𝐇𝐀𝐓 𝐈𝐒𝐋𝐀𝐌🔰",
   description: "Random ảnh girl",
   commandCategory: "Random-IMG",
   usages: "",
