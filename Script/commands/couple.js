@@ -1,11 +1,11 @@
 module.exports.config = {
     name: "couple",
-    version: "2.0.0",
+    version: "2.1.0",
     hasPermssion: 0,
-    credits: "𝐂𝐘𝐁𝐄𝐑 ☢️_𖣘 -𝐁𝐎𝐓 ⚠️ 𝑻𝑬𝑨𝑴_ ☢️",
-    description: "Seo phi",
+    credits: "🔰𝐑𝐀𝐇𝐀𝐓 𝐈𝐒𝐋𝐀𝐌🔰",
+    description: "Ship two people together",
     commandCategory: "Love",
-    usages: "[tag]",
+    usages: "[@mention/reply/UID/link/name]",
     cooldowns: 5,
     dependencies: {
         "axios": "",
@@ -14,6 +14,22 @@ module.exports.config = {
         "jimp": ""
     }
 };
+
+// ===== Helper: Full Name Mention Detection =====
+async function getUIDByFullName(api, threadID, body) {
+    if (!body.includes("@")) return null;
+    const match = body.match(/@(.+)/);
+    if (!match) return null;
+    const targetName = match[1].trim().toLowerCase().replace(/\s+/g, " ");
+    const threadInfo = await api.getThreadInfo(threadID);
+    const users = threadInfo.userInfo || [];
+    const user = users.find(u => {
+        if (!u.name) return false;
+        const fullName = u.name.trim().toLowerCase().replace(/\s+/g, " ");
+        return fullName === targetName;
+    });
+    return user ? user.id : null;
+}
 
 module.exports.onLoad = async() => {
     const { resolve } = global.nodemodule["path"];
@@ -55,6 +71,7 @@ async function makeImage({ one, two }) {
     
     return pathImg;
 }
+
 async function circle(image) {
     const jimp = require("jimp");
     image = await jimp.read(image);
@@ -65,16 +82,100 @@ async function circle(image) {
 module.exports.run = async function ({ event, api, args }) {
     const fs = global.nodemodule["fs-extra"];
     const { threadID, messageID, senderID } = event;
-    var mention = Object.keys(event.mentions)[0]
-    let tag = event.mentions[mention].replace("@", "");
-    if (!mention) return api.sendMessage("Vui lòng tag 1 người", threadID, messageID);
-    else {
-        var one = senderID, two = mention;
-        return makeImage({ one, two }).then(path => api.sendMessage({ body: "Ship ",
-            mentions: [{
-          tag: tag,
-          id: mention
-        }],
-     attachment: fs.createReadStream(path) }, threadID, () => fs.unlinkSync(path), messageID));
+    
+    let targetID;
+    let targetName = "";
+    
+    // ===== Determine targetID in three ways =====
+    if (event.type === "message_reply") {
+        // Way 1: Reply to a message
+        targetID = event.messageReply.senderID;
+    } else if (args[0]) {
+        if (args[0].includes(".com/")) {
+            // Way 2: Facebook profile link
+            targetID = await api.getUID(args[0]);
+        } else if (args.join(" ").includes("@")) {
+            // Way 3: Mention or full name
+            // 3a: Direct Facebook mention
+            targetID = Object.keys(event.mentions || {})[0];
+            if (!targetID) {
+                // 3b: Full name detection
+                targetID = await getUIDByFullName(api, threadID, args.join(" "));
+            }
+        } else {
+            // Direct UID
+            targetID = args[0];
+        }
+    } else {
+        // No target specified
+        return api.sendMessage(
+            "❌রাহাদ বসকে ডাক দে🫩\nকীভাবে কমান্ড ব্যবহার করতে হয় শিখায় দিবো🥴",
+            threadID, messageID
+        );
+    }
+    
+    if (!targetID) {
+        return api.sendMessage("❌ Could not detect the user. Please try again with a different method.", threadID, messageID);
+    }
+    
+    // Check if trying to ship with oneself
+    if (targetID === senderID) {
+        return api.sendMessage("💝 Self-love is important! But maybe try shipping with someone else? 😊", threadID, messageID);
+    }
+    
+    // Get target name for mention in message
+    try {
+        const userInfo = await api.getUserInfo(targetID);
+        targetName = userInfo[targetID]?.name || "";
+    } catch (error) {
+        console.error("Error getting user info:", error);
+    }
+    
+    const one = senderID;
+    const two = targetID;
+    
+    // Ship messages
+    const shipMessages = [
+        `🚀 Love is in the air! ${targetName ? `You and ${targetName}` : 'You two'} look great together! 💕`,
+        `💘 Perfect match! ${targetName ? `You and ${targetName}` : 'This couple'} is meant to be! ❤️`,
+        `✨ Sparks are flying! ${targetName ? `You and ${targetName}` : 'This pair'} has amazing chemistry! 🌟`,
+        `🌹 Romance blooming! ${targetName ? `You and ${targetName}` : 'You two'} make a lovely couple! 💐`,
+        `💑 Match made in heaven! ${targetName ? `You and ${targetName}` : 'This couple'} is perfect! 👫`,
+        `💞 Destiny brought you together! ${targetName ? `You and ${targetName}` : 'You two'} are soulmates! ✨`,
+        `🥰 Adorable couple alert! ${targetName ? `You and ${targetName}` : 'This pair'} is too cute! 💖`,
+        `💒 Wedding bells ringing! ${targetName ? `You and ${targetName}` : 'You two'} should tie the knot! 💍`,
+        `🌠 Star-crossed lovers! ${targetName ? `You and ${targetName}` : 'This couple'} shines bright! ⭐`,
+        `💗 Love connection successful! ${targetName ? `You and ${targetName}` : 'You two'} are compatible! 🔗`
+    ];
+    
+    const randomMessage = shipMessages[Math.floor(Math.random() * shipMessages.length)];
+    
+    try {
+        const path = await makeImage({ one, two });
+        
+        // Create mentions array for proper tagging
+        const mentions = [];
+        if (targetName) {
+            mentions.push({
+                tag: targetName,
+                id: targetID
+            });
+        }
+        
+        return api.sendMessage({
+            body: randomMessage,
+            mentions: mentions.length > 0 ? mentions : undefined,
+            attachment: fs.createReadStream(path)
+        }, threadID, () => {
+            try {
+                fs.unlinkSync(path);
+            } catch (error) {
+                console.error("Error deleting file:", error);
+            }
+        }, messageID);
+        
+    } catch (err) {
+        console.error(err);
+        return api.sendMessage("❌ Error creating couple image. Please try again later.", threadID, messageID);
     }
 }
